@@ -3,6 +3,17 @@ import os
 from dotenv import load_dotenv
 from MedRAG.src.medrag import MedRAG  # Adjust the import based on your project structure
 
+import streamlit as st
+
+# Access the OpenAI API key: prioritize Streamlit secrets, fallback to environment variables
+# Gracefully handle missing secrets.toml
+try:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+except FileNotFoundError:
+    # Fall back to environment variable if secrets.toml is missing
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+
 def string_to_stream(text):
     for char in text:
         yield char
@@ -23,7 +34,8 @@ def parse_options_to_json(options_text):
 load_dotenv()
 
 # Get the OpenAI API key from environment variables
-openai_api_key = os.getenv('OPENAI_API_KEY')
+#openai_api_key = os.getenv('OPENAI_API_KEY')
+openai_api_key = OPENAI_API_KEY
 
 # Show title and description.
 st.title("💬 Chatbot")
