@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-from MedRAG.src.medrag import MedRAG  # Adjust the import based on your project structure
+from MedRAG2.src.medrag import MedRAG  # Adjust the import based on your project structure
 
 import streamlit as st
 

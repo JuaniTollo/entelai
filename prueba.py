@@ -1,4 +1,4 @@
-from MedRAG.src.medrag import MedRAG
+from MedRAG2.src.medrag import MedRAG
 
 question = "A lesion causing compression of the facial nerve at the stylomastoid foramen will cause ipsilateral"
 options = {
