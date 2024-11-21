@@ -1,2 +1,14 @@
 streamlit
 openai
+python-dotenv
+pybind11>=2.10.1
+git+https://github.com/nmslib/nmslib.git#egg=nmslib&subdirectory=python_bindings
+faiss-cpu==1.7.4
+python-liquid==1.10.2
+langchain==0.0.345
+tqdm==4.66.1
+transformers==4.44.2
+sentence_transformers==2.2.2
+pyserini==0.22.1
+tiktoken==0.6.0
+datasets==2.16.1

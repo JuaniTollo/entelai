@@ -1,56 +1,97 @@
 import streamlit as st
-from openai import OpenAI
+import os
+from dotenv import load_dotenv
+from MedRAG.src.medrag import MedRAG  # Adjust the import based on your project structure
+
+def string_to_stream(text):
+    for char in text:
+        yield char
+
+def parse_options_to_json(options_text):
+    """
+    Parse options from a single text input into a JSON-like dictionary.
+    """
+    options = {}
+    lines = options_text.split("\n")
+    for line in lines:
+        if ")" in line:
+            key, value = line.split(")", 1)
+            options[key.strip().upper()] = value.strip()
+    return options
+
+# Load the .env file
+load_dotenv()
+
+# Get the OpenAI API key from environment variables
+openai_api_key = os.getenv('OPENAI_API_KEY')
 
 # Show title and description.
 st.title("💬 Chatbot")
 st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+    "This chatbot answers medical questions using Retrieval-Augmented Generation (RAG) with the language model "
+    "**OpenAI/gpt-3.5-turbo-16k**, configured with RAG disabled (**rag=False**). "
+    "It relies entirely on the LLM's generative capabilities without retrieving external knowledge, "
+    "based on the implementation described in [this paper](https://aclanthology.org/2024.findings-acl.372) presented at ACL 2024."
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
+# Ask user for their OpenAI API key if not provided
 if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+    openai_api_key = st.text_input("OpenAI API Key", type="password")
+    if not openai_api_key:
+        st.info("Please add your OpenAI API key to continue.", icon="🗝️")
+        st.stop()
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+# Initialize MedRAG with the OpenAI API key
+cot = MedRAG(llm_name="OpenAI/gpt-3.5-turbo-16k", rag=False)
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+# Create a session state variable to store the chat messages.
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# Display the existing chat messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+# Input fields for question and options
+with st.form("chat_form", clear_on_submit=True):
+    question = st.text_input("Enter your question:", placeholder="Type your question here...")
+    options_text = st.text_area(
+        "Enter the options as text (e.g., 'a) Option A\\nb) Option B\\nc) Option C'):",
+        placeholder="a) Option A\nb) Option B\nc) Option C\nd) Option D"
+    )
+    submit_button = st.form_submit_button("Submit")
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
+if submit_button:
+    if question and options_text:
+        # Parse the input into JSON
+        options = parse_options_to_json(options_text)
+
+        # Store and display the current question and options
+        st.session_state.messages.append({"role": "user", "content": f"**Question:** {question}\n**Options:** {options}"})
         with st.chat_message("user"):
-            st.markdown(prompt)
+            st.markdown(f"**Question:** {question}")
+            st.markdown(f"**Options (JSON):** {options}")
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
+        # Generate answer using MedRAG
+        answer, _, _ = cot.answer(question=question, options=options)
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        # Parse the answer into readable components
+        try:
+            answer_data = eval(answer)  # Convert string output to a dictionary
+            step_by_step_thinking = answer_data.get("step_by_step_thinking", "No explanation provided.")
+            answer_choice = answer_data.get("answer_choice", "No answer choice provided.")
+
+            # Display the response
+            with st.chat_message("assistant"):
+                st.markdown("### Step-by-Step Thinking")
+                st.markdown(step_by_step_thinking)
+                st.markdown("### Final Answer Choice")
+                st.markdown(f"**{answer_choice}**")
+
+            # Save response in session state
+            st.session_state.messages.append({"role": "assistant", "content": f"### Step-by-Step Thinking\n{step_by_step_thinking}\n### Final Answer Choice\n**{answer_choice}**"})
+        except Exception as e:
+            st.error(f"Error parsing the response: {e}")
+    else:
+        st.warning("Please enter both a question and options to proceed.")
