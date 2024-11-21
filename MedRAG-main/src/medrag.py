@@ -12,10 +12,10 @@ from transformers import StoppingCriteria, StoppingCriteriaList
 import tiktoken
 import sys
 sys.path.append("src")
-from utils import RetrievalSystem, DocExtracter
-from template import *
+from MedRAG2.src.utils import RetrievalSystem, DocExtracter
+from MedRAG2.src.template import *
 
-from config import config
+from MedRAG2.src.config import config
 
 openai.api_type = openai.api_type or os.getenv("OPENAI_API_TYPE") or config.get("api_type")
 openai.api_version = openai.api_version or os.getenv("OPENAI_API_VERSION") or config.get("api_version")
