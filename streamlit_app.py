@@ -1,8 +1,8 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-from MedRAG2.src.medrag import MedRAG  # Adjust the import based on your project structure
 
+load_dotenv()
 import streamlit as st
 
 # Access the OpenAI API key: prioritize Streamlit secrets, fallback to environment variables
@@ -53,6 +53,7 @@ if not openai_api_key:
         st.info("Please add your OpenAI API key to continue.", icon="🗝️")
         st.stop()
 
+from medrag import MedRAG
 # Initialize MedRAG with the OpenAI API key
 cot = MedRAG(llm_name="OpenAI/gpt-3.5-turbo-16k", rag=False)
 
