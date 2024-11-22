@@ -11,7 +11,6 @@ import streamlit as st
 try:
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 except FileNotFoundError:
-    # Fall back to environment variable if secrets.toml is missing
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
